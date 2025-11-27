@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galaxy Agent Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+    <style>
+        /* Light Theme Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 h-screen flex flex-col font-sans">
+
+    <!-- Header -->
+    <header class="h-16 bg-white border-b border-gray-200 flex justify-between items-center px-6 shadow-sm z-20">
+        <div class="flex items-center gap-3">
+            <div class="bg-purple-600 text-white p-2 rounded-lg">
+                <i class="fas fa-dna"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-gray-800 text-lg tracking-tight">Galaxy Orchestrator</h1>
+                <p class="text-xs text-gray-500">Bioinformatics Agent</p>
+            </div>
+        </div>
+        <div class="text-xs font-mono text-gray-400">
+            <span id="status-indicator" class="inline-block w-2 h-2 rounded-full bg-gray-300 mr-1"></span>
+            System Status
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- Sidebar -->
+        <aside class="w-80 bg-gray-100 border-r border-gray-200 flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10">
+            
+            <!-- 1. User Section: Model Selection -->
+            <div class="p-5 border-b border-gray-200 bg-white">
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                    <i class="fas fa-brain mr-1"></i> AI Model
+                </label>
+                <div class="relative">
+                    <select id="user-model-select" onchange="updateModel()" class="w-full appearance-none bg-gray-50 border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block p-2.5">
+                        <option value="gpt-oss:120b">GPT-OSS 120B (Recommended)</option>
+                        <option value="llama3:latest">Llama 3 (Fast)</option>
+                        <option value="qwen:14b">Qwen 14B</option>
+                        <option value="mistral">Mistral 7B</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                        <i class="fas fa-chevron-down text-xs"></i>
+                    </div>
+                </div>
+                <p class="text-[10px] text-gray-400 mt-2">
+                    Select the inference model running on the backend.
+                </p>
+            </div>
+
+            <!-- 2. Admin Section: Configuration (Collapsible) -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                <details class="group bg-gray-50 rounded-lg border border-gray-200 open:bg-white transition-all duration-200">
+                    <summary class="list-none flex items-center justify-between p-3 cursor-pointer text-xs font-bold text-gray-500 uppercase hover:text-purple-600">
+                        <span><i class="fas fa-cog mr-1"></i> System Admin</span>
+                        <span class="transition group-open:rotate-180"><i class="fas fa-chevron-down"></i></span>
+                    </summary>
+                    <div class="p-3 pt-0 border-t border-gray-100 space-y-4 mt-2">
+                        
+                        <!-- Galaxy Config -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 mb-1">Galaxy URL</label>
+                            <input id="cfg-galaxy-url" type="text" value="http://localhost:8080" class="w-full bg-gray-50 border border-gray-200 rounded p-2 text-xs text-gray-700 focus:border-purple-500 outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 mb-1">Galaxy API Key</label>
+                            <input id="cfg-api-key" type="password" placeholder="Paste API Key Here" class="w-full bg-gray-50 border border-gray-200 rounded p-2 text-xs text-gray-700 focus:border-purple-500 outline-none font-mono">
+                        </div>
+
+                        <!-- Ollama Config -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 mb-1">Ollama URL</label>
+                            <input id="cfg-ollama-url" type="text" value="http://localhost:11434" class="w-full bg-gray-50 border border-gray-200 rounded p-2 text-xs text-gray-700 focus:border-purple-500 outline-none">
+                        </div>
+
+                        <button onclick="saveAdminConfig()" class="w-full bg-gray-800 hover:bg-gray-700 text-white text-xs py-2 rounded shadow-sm transition-all">
+                            Save Configuration
+                        </button>
+                        <p id="save-status" class="text-center text-[10px] text-green-500 mt-1 opacity-0">Saved to LocalStorage</p>
+                    </div>
+                </details>
+
+                <!-- Logs -->
+                <div class="mt-4">
+                     <h3 class="text-[10px] font-bold text-gray-400 uppercase mb-2 flex justify-between">
+                         Activity Log
+                         <i class="fas fa-terminal opacity-50"></i>
+                     </h3>
+                     <div id="logs" class="bg-white border border-gray-200 rounded-lg p-2 h-48 overflow-y-auto font-mono text-[10px] text-gray-500 leading-relaxed shadow-inner">
+                         <!-- Logs go here -->
+                     </div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="p-3 border-t border-gray-200 text-center">
+                 <p class="text-[10px] text-gray-400">© 2024 Galaxy Orchestrator</p>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="flex-1 flex flex-col bg-gray-50 relative">
+            
+            <!-- Chat Container -->
+            <div id="chat-box" class="flex-1 overflow-y-auto p-8 space-y-6">
+                <!-- Welcome Card -->
+                <div class="flex justify-start animate-fade-in">
+                    <div class="bg-white p-6 rounded-2xl rounded-tl-none shadow-sm border border-gray-100 max-w-2xl">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="bg-purple-100 text-purple-600 w-8 h-8 flex items-center justify-center rounded-lg">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <span class="font-bold text-gray-800">AI Assistant</span>
+                        </div>
+                        <p class="text-gray-600 text-sm leading-relaxed mb-4">
+                            Hello! I am connected to your local Galaxy server. 
+                            I can help you analyze data using the tools configured in the backend.
+                        </p>
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                            <p class="text-xs font-bold text-gray-500 uppercase mb-2">Try asking:</p>
+                            <ul class="text-sm text-gray-600 space-y-2">
+                                <li class="flex items-center gap-2 cursor-pointer hover:text-purple-600" onclick="setInput('Upload a file for me')">
+                                    <i class="fas fa-file-upload text-gray-400"></i> "Upload a file"
+                                </li>
+                                <li class="flex items-center gap-2 cursor-pointer hover:text-purple-600" onclick="setInput('Filter lines containing gene_A')">
+                                    <i class="fas fa-filter text-gray-400"></i> "Filter lines containing 'gene_A'"
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="p-6 bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.02)] z-20">
+                <div class="max-w-4xl mx-auto flex gap-3 items-end">
+                    
+                    <input type="file" id="file-upload" class="hidden" onchange="handleFileUpload(this)">
+                    <button onclick="document.getElementById('file-upload').click()" class="p-3 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-xl transition-colors" title="Upload File">
+                        <i class="fas fa-paperclip"></i>
+                    </button>
+                    
+                    <div class="flex-1 relative">
+                        <textarea id="user-input" rows="1" placeholder="Type your instruction..." class="w-full bg-gray-50 text-gray-800 p-3 pl-4 pr-12 rounded-xl border border-gray-200 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all resize-none shadow-inner" style="min-height: 50px;" onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"></textarea>
+                        <div class="absolute right-3 bottom-3 text-xs text-gray-400 pointer-events-none">
+                            <span class="border border-gray-200 rounded px-1">↵</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="sendMessage()" class="p-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-lg shadow-purple-200 transition-transform transform active:scale-95">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                <div class="text-center mt-2">
+                    <p class="text-[10px] text-gray-400">Powered by Ollama & Galaxy Project</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. BACKEND CONFIGURATION (Admin Area)
+        // ==========================================
+        
+        // This is the "Knowledge Base" you configure in the code.
+        // Users won't see this unless they inspect element.
+        const INTERNAL_KNOWLEDGE_BASE = [
+            {
+                name: "text_filter",
+                description: "Filter lines in a dataset based on a pattern. Use for searching, grep, or finding text.",
+                // THE REAL BACKEND MAPPING
+                mapping: {
+                    // TODO: REPLACE THIS WITH YOUR REAL TOOL ID
+                    toolId: "Filter1", 
+                    params: {
+                        "dataset_id": "input", // Map 'dataset_id' to Galaxy 'input'
+                        "pattern": "cond"      // Map 'pattern' to Galaxy 'cond'
+                    }
+                },
+                // LLM SCHEMA
+                schema: {
+                    type: "object",
+                    properties: {
+                        dataset_id: { type: "string", description: "The Galaxy Dataset ID to filter." },
+                        pattern: { type: "string", description: "Regex or keyword." }
+                    },
+                    required: ["dataset_id", "pattern"]
+                }
+            }
+        ];
+
+        // ==========================================
+        // 2. CLIENT LOGIC
+        // ==========================================
+        const CONFIG_KEY = 'galaxy_admin_config';
+        let currentHistoryId = null;
+        let lastUploadedDatasetId = null;
+
+        // Load Admin Config on Start
+        window.addEventListener('DOMContentLoaded', () => {
+            const saved = localStorage.getItem(CONFIG_KEY);
+            if (saved) {
+                const cfg = JSON.parse(saved);
+                document.getElementById('cfg-galaxy-url').value = cfg.galaxyUrl || 'http://localhost:8080';
+                document.getElementById('cfg-api-key').value = cfg.apiKey || '';
+                document.getElementById('cfg-ollama-url').value = cfg.ollamaUrl || 'http://localhost:11434';
+                
+                if(cfg.apiKey) {
+                    document.getElementById('status-indicator').classList.remove('bg-gray-300');
+                    document.getElementById('status-indicator').classList.add('bg-green-400');
+                }
+            }
+        });
+
+        function saveAdminConfig() {
+            const cfg = {
+                galaxyUrl: document.getElementById('cfg-galaxy-url').value,
+                apiKey: document.getElementById('cfg-api-key').value,
+                ollamaUrl: document.getElementById('cfg-ollama-url').value
+            };
+            localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+            
+            // Visual feedback
+            const msg = document.getElementById('save-status');
+            msg.style.opacity = 1;
+            document.getElementById('status-indicator').classList.remove('bg-gray-300');
+            document.getElementById('status-indicator').classList.add('bg-green-400');
+            setTimeout(() => msg.style.opacity = 0, 2000);
+        }
+
+        function getConfig() {
+            return {
+                galaxyUrl: document.getElementById('cfg-galaxy-url').value.replace(/\/$/, ''),
+                apiKey: document.getElementById('cfg-api-key').value,
+                ollamaUrl: document.getElementById('cfg-ollama-url').value.replace(/\/$/, ''),
+                model: document.getElementById('user-model-select').value // User selected
+            };
+        }
+
+        function updateModel() {
+            log(`Model switched to: ${document.getElementById('user-model-select').value}`);
+        }
+
+        function setInput(text) {
+            document.getElementById('user-input').value = text;
+        }
+
+        // --- Logging ---
+        function log(msg, type = 'info') {
+            const logs = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = `mb-1 ${type === 'error' ? 'text-red-500' : (type === 'success' ? 'text-green-600' : 'text-gray-500')}`;
+            entry.textContent = `> ${msg}`;
+            logs.prepend(entry);
+        }
+
+        // --- Chat UI ---
+        function addMessage(role, content, isHtml = false) {
+            const box = document.getElementById('chat-box');
+            const row = document.createElement('div');
+            row.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`;
+            
+            const bubble = document.createElement('div');
+            if (role === 'user') {
+                bubble.className = 'bg-purple-600 text-white p-4 rounded-2xl rounded-tr-none shadow-md text-sm max-w-[80%]';
+            } else {
+                bubble.className = 'bg-white text-gray-700 p-4 rounded-2xl rounded-tl-none shadow-sm border border-gray-100 text-sm max-w-[80%]';
+            }
+            
+            if (isHtml) bubble.innerHTML = content;
+            else bubble.textContent = content;
+
+            row.appendChild(bubble);
+            box.appendChild(row);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // --- API Helpers ---
+        async function galaxyFetch(endpoint, method = 'GET', body = null) {
+            const cfg = getConfig();
+            if (!cfg.apiKey) { alert('Admin Error: No API Key configured.'); throw new Error('No API Key'); }
+            
+            const opts = {
+                method,
+                headers: { 'x-api-key': cfg.apiKey, 'Content-Type': 'application/json' }
+            };
+            if (body) opts.body = JSON.stringify(body);
+
+            try {
+                const res = await fetch(`${cfg.galaxyUrl}${endpoint}`, opts);
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`Galaxy API Error (${res.status}): ${text}`);
+                }
+                return await res.json();
+            } catch (e) {
+                log(e.message, 'error');
+                throw e;
+            }
+        }
+
+        async function ensureHistory() {
+            if (currentHistoryId) return currentHistoryId;
+            const hists = await galaxyFetch('/api/histories?order=update_time');
+            if (hists.length > 0) {
+                currentHistoryId = hists[0].id;
+                log(`Session attached: ${hists[0].name}`, 'success');
+            } else {
+                const newHist = await galaxyFetch('/api/histories', 'POST', { name: 'Agent Session ' + new Date().toISOString() });
+                currentHistoryId = newHist.id;
+                log(`New Session created: ${newHist.id}`, 'success');
+            }
+            return currentHistoryId;
+        }
+
+        // --- Core Functions ---
+        async function handleFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            addMessage('user', `Uploading file: ${file.name}`);
+            addMessage('assistant', `Processing upload... <i class="fas fa-spinner fa-spin"></i>`, true);
+
+            try {
+                const histId = await ensureHistory();
+                const text = await file.text();
+
+                const payload = {
+                    tool_id: 'upload1',
+                    history_id: histId,
+                    inputs: {
+                        'files_0|type': 'upload_dataset',
+                        'files_0|NAME': file.name,
+                        'files_0|url_paste': text,
+                        'dbkey': '?',
+                        'file_type': 'auto',
+                    }
+                };
+
+                const res = await galaxyFetch('/api/tools', 'POST', payload);
+                const datasetId = res.outputs[0].id;
+                lastUploadedDatasetId = datasetId;
+                
+                log(`Upload Success. ID: ${datasetId}`, 'success');
+                addMessage('assistant', `✅ <b>File Uploaded</b><br>Dataset ID: <code>${datasetId}</code><br>You can now ask me to analyze this file.`, true);
+
+            } catch (e) {
+                addMessage('assistant', `❌ Upload failed: ${e.message}`);
+            }
+        }
+
+        async function sendMessage() {
+            const inputEl = document.getElementById('user-input');
+            const text = inputEl.value.trim();
+            if (!text) return;
+            
+            inputEl.value = '';
+            addMessage('user', text);
+            addMessage('assistant', `Thinking...`, true);
+
+            const cfg = getConfig();
+            
+            // Construct System Prompt using INTERNAL_KNOWLEDGE_BASE
+            const availableTools = INTERNAL_KNOWLEDGE_BASE.map(t => ({
+                name: t.name,
+                description: t.description,
+                parameters: t.schema
+            }));
+
+            const systemPrompt = `
+You are a Bioinformatics Assistant.
+Context: Last File ID: "${lastUploadedDatasetId || 'None'}".
+User: "${text}".
+
+If the user request matches a tool, output JSON: {"tool": "tool_name", "parameters": {...}}.
+Otherwise, reply in text.
+
+Tools: ${JSON.stringify(availableTools)}
+            `;
+
+            try {
+                // Call Ollama
+                const ollamaRes = await fetch(`${cfg.ollamaUrl}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: cfg.model,
+                        stream: false,
+                        messages: [
+                            { role: "system", content: systemPrompt },
+                            { role: "user", content: text }
+                        ],
+                        format: "json" // Force JSON mode for better tool calls
+                    })
+                });
+
+                if (!ollamaRes.ok) throw new Error(`Ollama Error: ${ollamaRes.statusText}`);
+                const ollamaJson = await ollamaRes.json();
+                let content = ollamaJson.message.content;
+
+                // Parse Decision
+                let toolCall = null;
+                try {
+                    const match = content.match(/\{[\s\S]*\}/);
+                    if (match) toolCall = JSON.parse(match[0]);
+                    if (toolCall && !toolCall.tool && toolCall.name) toolCall.tool = toolCall.name;
+                } catch (e) {}
+
+                if (toolCall && toolCall.tool) {
+                    // Find mapping in Internal Knowledge Base
+                    const toolDef = INTERNAL_KNOWLEDGE_BASE.find(t => t.name === toolCall.tool);
+                    
+                    if (toolDef) {
+                        addMessage('assistant', `⚙️ <b>Executing Tool:</b> ${toolCall.tool}...`, true);
+                        await runGalaxyTool(toolDef, toolCall.parameters);
+                    } else {
+                        addMessage('assistant', `⚠️ Model hallucinated tool '${toolCall.tool}' which is not in knowledge base.`);
+                    }
+                } else {
+                    if (toolCall && toolCall.message) content = toolCall.message;
+                    addMessage('assistant', content);
+                }
+
+            } catch (e) {
+                addMessage('assistant', `System Error: ${e.message}`);
+            }
+        }
+
+        async function runGalaxyTool(toolDef, params) {
+            const cfg = getConfig();
+            const histId = await ensureHistory();
+
+            if (!params.dataset_id && lastUploadedDatasetId) {
+                params.dataset_id = lastUploadedDatasetId;
+            }
+
+            // --- RAG MAPPING ENGINE ---
+            const payload = {
+                tool_id: toolDef.mapping.toolId,
+                history_id: histId,
+                inputs: {}
+            };
+
+            // Map abstract params to concrete Galaxy params
+            for (const [key, val] of Object.entries(params)) {
+                const galaxyKey = toolDef.mapping.params[key];
+                if (galaxyKey) {
+                    if (key === 'dataset_id') {
+                        payload.inputs[galaxyKey] = { src: 'hda', id: val };
+                    } else {
+                        payload.inputs[galaxyKey] = val;
+                    }
+                }
+            }
+            
+            log(`Executing Tool: ${JSON.stringify(payload)}`);
+
+            try {
+                const toolRes = await galaxyFetch('/api/tools', 'POST', payload);
+                const jobId = toolRes.jobs[0].id;
+                
+                // Polling
+                addMessage('assistant', `Waiting for Galaxy Job (${jobId})...`, true);
+                
+                const pollInterval = setInterval(async () => {
+                    const job = await galaxyFetch(`/api/jobs/${jobId}`);
+                    if (job.state === 'ok') {
+                        clearInterval(pollInterval);
+                        addMessage('assistant', `✅ <b>Analysis Complete</b><br>Result Dataset: ${job.outputs[0].id}`, true);
+                    } else if (job.state === 'error') {
+                        clearInterval(pollInterval);
+                        addMessage('assistant', `❌ Job Failed on Galaxy.`, true);
+                    }
+                }, 2000);
+
+            } catch (e) {
+                addMessage('assistant', `❌ Execution Failed: ${e.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -211,20 +211,20 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-900 text-white font-sans">
-      <div className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col hidden md:flex">
-        <div className="p-4 border-b border-gray-800">
+    <div className="flex h-screen bg-gray-50 text-gray-800 font-sans">
+      <div className="w-64 bg-white border-r border-gray-200 flex flex-col hidden md:flex">
+        <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-2 text-galaxy-primary font-bold text-lg">
             <i className="fas fa-dna"></i>
             <span>Galaxy Orchestrator</span>
           </div>
         </div>
-        <div className="flex-1 p-4 text-sm text-gray-400">
+        <div className="flex-1 p-4 text-sm text-gray-500">
           <p className="mb-4">Backend: {config.galaxyUrl.replace(/http[s]?:\/\//, '')}</p>
           <p>Model: {config.ollamaModel}</p>
         </div>
-        <div className="p-4 border-t border-gray-800">
-          <button onClick={() => setIsSettingsOpen(true)} className="w-full bg-gray-800 py-2 rounded">
+        <div className="p-4 border-t border-gray-200">
+          <button onClick={() => setIsSettingsOpen(true)} className="w-full bg-gray-100 hover:bg-gray-200 py-2 rounded text-gray-700">
             <i className="fas fa-cog mr-2"></i> Settings
           </button>
         </div>
