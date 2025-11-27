@@ -7,26 +7,36 @@
 **项目背景：本地 Galaxy-Ollama 生物信息学智能体 (胖客户端架构)**
 
 我正在构建一个基于浏览器的“胖客户端”智能体，用于生物信息学分析。
-- **前端架构**：React + Tailwind (纯静态页面，无中间件 Node 服务器)。
-- **后端 1 (大脑)**：本地 Ollama (模型: gpt-oss:120b)，地址：`http://192.168.32.31:11434`。
-- **后端 2 (执行者)**：本地 Galaxy 服务器，地址：`http://192.168.32.31` (需要 API Key)。
+- **前端架构**：HTML5 + Tailwind + Vanilla JS (单文件 `demo.html` 演示版)。
+- **后端架构**：
+  - **大脑**：本地 Ollama (双模型路由)。
+  - **执行者**：本地 Galaxy 服务器 (需要 API Key)。
 
 **核心工作流 (Core Workflow):**
 
 1.  **前端驱动的 RAG (Frontend-Driven RAG)**：
-    - 前端维护一个 `constants.ts` 文件作为**知识库**。
-    - **工具定义 (Tool Definitions)**：包含供 LLM 理解的 JSON Schema (例如 `text_filter` 的用途)。
-    - **API 映射 (API Mappings)**：包含将抽象指令转换为具体 Galaxy API 请求的规则 (例如：`pattern` 参数 -> 对应 Galaxy API 的 `cond` 参数，`dataset_id` -> `hda_ref`)。
+    - 前端内置 `INTERNAL_KNOWLEDGE_BASE` 常量作为知识库。
+    - **UI 呈现**：左侧侧边栏展示 Galaxy 工具列表。
+    - **API 映射**：包含将抽象指令转换为具体 Galaxy API 请求的规则 (映射 `toolId` 和 `params`)。
 
-2.  **交互闭环 (Interaction Loop)**：
-    - **上传**：用户上传文件 -> 前端直接传给 Galaxy -> 获取 `Dataset ID` -> 注入到 LLM 的上下文提示词中。
-    - **决策**：用户提问 -> LLM 返回 JSON 决策 (`{"tool": "text_filter", ...}`)。
-    - **映射与执行**：前端拦截 JSON -> 查阅 `constants.ts` 映射表 -> 构建真实的 POST 请求发给 Galaxy。
-    - **轮询 (Polling)**：前端对 Galaxy Job API 进行轮询，直到状态变为 `ok` -> 向用户展示结果。
+2.  **智能模型路由 (Auto-Routing)**：
+    - 系统根据是否有文件上下文 (`lastUploadedDatasetId`) 自动选择模型：
+    - **Chat Model** (`gpt-oss:120b`): 用于纯文本对话。
+    - **Data Model** (`qwen3-embedding:4b`): 用于多模态/文件分析/OCR。
+
+3.  **交互闭环 (Interaction Loop)**：
+    - **上传**：用户上传文件 -> 前端传给 Galaxy -> 注入上下文 -> **自动切换至 Data Model**。
+    - **决策**：用户提问 -> LLM 返回 JSON 决策。
+    - **视觉反馈**：Agent 决定调用工具时，左侧侧边栏对应工具会**闪烁紫色高亮**。
+    - **执行**：查表映射 -> 发送 Galaxy 请求 -> 轮询状态 -> 显示结果。
 
 **当前状态 (Current Status):**
-- 代码结构已定 (`App.tsx` 控制流程, `galaxyService.ts` 处理逻辑, `constants.ts` 存储知识)。
-- 关键依赖：标准 Galaxy API。
-- **核心约束**：用户必须手动更新 `constants.ts`，填入其服务器上真实的 Galaxy Tool ID 和参数名。
+- UI 已改为**浅色/办公风格**。
+- 管理员配置（API Key, URL, 模型名）已折叠隐藏，且持久化在 LocalStorage。
+- `demo.html` 是当前的演示核心。
+
+**核心约束**：
+- 用户必须手动在 Admin 面板配置其服务器上真实的 Tool ID。
+- 必须确保 Ollama 和 Galaxy 配置了 CORS 跨域允许。
 
 **当前任务**: [在此处填写你具体想要修改或新增的功能]

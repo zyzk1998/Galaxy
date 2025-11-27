@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Galaxy Agent Demo</title>
+    <title>Galaxy Agent Demo (Auto-Routing)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
     <style>
@@ -15,6 +15,17 @@
         
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 工具高亮动画 */
+        @keyframes pulse-purple {
+            0%, 100% { background-color: white; border-color: transparent; }
+            50% { background-color: #f3e8ff; border-color: #9333ea; transform: scale(1.02); }
+        }
+        .tool-active {
+            animation: pulse-purple 1.5s infinite;
+            border: 1px solid #9333ea !important;
+            color: #9333ea !important;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 h-screen flex flex-col font-sans">
@@ -27,44 +38,40 @@
             </div>
             <div>
                 <h1 class="font-bold text-gray-800 text-lg tracking-tight">Galaxy Orchestrator</h1>
-                <p class="text-xs text-gray-500">Bioinformatics Agent</p>
+                <p class="text-xs text-gray-500">Intelligent Bioinformatics Agent</p>
             </div>
         </div>
-        <div class="text-xs font-mono text-gray-400">
-            <span id="status-indicator" class="inline-block w-2 h-2 rounded-full bg-gray-300 mr-1"></span>
-            System Status
+        <div class="flex items-center gap-3 text-xs font-mono">
+            <div id="model-badge" class="px-2 py-1 rounded bg-gray-100 text-gray-500 transition-colors">
+                <i class="fas fa-brain mr-1"></i> <span id="current-model-display">Waiting...</span>
+            </div>
+            <div class="text-gray-400">
+                <span id="status-indicator" class="inline-block w-2 h-2 rounded-full bg-gray-300 mr-1"></span>
+                System Status
+            </div>
         </div>
     </header>
 
     <div class="flex flex-1 overflow-hidden">
         
-        <!-- Sidebar -->
-        <aside class="w-80 bg-gray-100 border-r border-gray-200 flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10">
+        <!-- Sidebar: Tools & Admin -->
+        <aside class="w-72 bg-gray-100 border-r border-gray-200 flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10">
             
-            <!-- 1. User Section: Model Selection -->
-            <div class="p-5 border-b border-gray-200 bg-white">
-                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                    <i class="fas fa-brain mr-1"></i> AI Model
-                </label>
-                <div class="relative">
-                    <select id="user-model-select" onchange="updateModel()" class="w-full appearance-none bg-gray-50 border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block p-2.5">
-                        <option value="gpt-oss:120b">GPT-OSS 120B (Recommended)</option>
-                        <option value="llama3:latest">Llama 3 (Fast)</option>
-                        <option value="qwen:14b">Qwen 14B</option>
-                        <option value="mistral">Mistral 7B</option>
-                    </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                        <i class="fas fa-chevron-down text-xs"></i>
-                    </div>
+            <!-- 1. Tools Section (Galaxy Style) -->
+            <div class="flex-1 overflow-y-auto p-4">
+                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">
+                    <i class="fas fa-tools mr-1"></i> Available Tools
+                </h2>
+                
+                <!-- 工具列表容器 -->
+                <div id="tools-list" class="space-y-2">
+                    <!-- JS 将动态填充这里 -->
                 </div>
-                <p class="text-[10px] text-gray-400 mt-2">
-                    Select the inference model running on the backend.
-                </p>
             </div>
 
             <!-- 2. Admin Section: Configuration (Collapsible) -->
-            <div class="flex-1 overflow-y-auto p-4 space-y-4">
-                <details class="group bg-gray-50 rounded-lg border border-gray-200 open:bg-white transition-all duration-200">
+            <div class="p-4 border-t border-gray-200 bg-gray-50">
+                <details class="group bg-white rounded-lg border border-gray-200 open:shadow-lg transition-all duration-200">
                     <summary class="list-none flex items-center justify-between p-3 cursor-pointer text-xs font-bold text-gray-500 uppercase hover:text-purple-600">
                         <span><i class="fas fa-cog mr-1"></i> System Admin</span>
                         <span class="transition group-open:rotate-180"><i class="fas fa-chevron-down"></i></span>
@@ -82,10 +89,22 @@
                             <input id="cfg-api-key" type="password" placeholder="Paste API Key Here" class="w-full bg-gray-50 border border-gray-200 rounded p-2 text-xs text-gray-700 focus:border-purple-500 outline-none font-mono">
                         </div>
 
+                        <div class="border-t border-gray-100 my-2"></div>
+
                         <!-- Ollama Config -->
                         <div>
                             <label class="block text-[10px] font-bold text-gray-400 mb-1">Ollama URL</label>
                             <input id="cfg-ollama-url" type="text" value="http://localhost:11434" class="w-full bg-gray-50 border border-gray-200 rounded p-2 text-xs text-gray-700 focus:border-purple-500 outline-none">
+                        </div>
+
+                        <!-- Model Auto-Routing Config -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-blue-500 mb-1"><i class="fas fa-comments"></i> Chat Model (Text)</label>
+                            <input id="cfg-text-model" type="text" value="gpt-oss:120b" class="w-full bg-blue-50 border border-blue-100 rounded p-2 text-xs text-gray-700 focus:border-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-purple-500 mb-1"><i class="fas fa-file-alt"></i> Data Model (Multimodal)</label>
+                            <input id="cfg-data-model" type="text" value="qwen3-embedding:4b" class="w-full bg-purple-50 border border-purple-100 rounded p-2 text-xs text-gray-700 focus:border-purple-500 outline-none">
                         </div>
 
                         <button onclick="saveAdminConfig()" class="w-full bg-gray-800 hover:bg-gray-700 text-white text-xs py-2 rounded shadow-sm transition-all">
@@ -95,21 +114,10 @@
                     </div>
                 </details>
 
-                <!-- Logs -->
-                <div class="mt-4">
-                     <h3 class="text-[10px] font-bold text-gray-400 uppercase mb-2 flex justify-between">
-                         Activity Log
-                         <i class="fas fa-terminal opacity-50"></i>
-                     </h3>
-                     <div id="logs" class="bg-white border border-gray-200 rounded-lg p-2 h-48 overflow-y-auto font-mono text-[10px] text-gray-500 leading-relaxed shadow-inner">
-                         <!-- Logs go here -->
-                     </div>
+                <!-- Footer -->
+                <div class="mt-4 text-center">
+                     <p class="text-[10px] text-gray-400">© 2024 Galaxy Orchestrator</p>
                 </div>
-            </div>
-            
-            <!-- Footer -->
-            <div class="p-3 border-t border-gray-200 text-center">
-                 <p class="text-[10px] text-gray-400">© 2024 Galaxy Orchestrator</p>
             </div>
         </aside>
 
@@ -128,17 +136,19 @@
                             <span class="font-bold text-gray-800">AI Assistant</span>
                         </div>
                         <p class="text-gray-600 text-sm leading-relaxed mb-4">
-                            Hello! I am connected to your local Galaxy server. 
-                            I can help you analyze data using the tools configured in the backend.
+                            你好！我是你的生物信息学助手。
+                            <br>我会根据你的需求自动选择模型：
+                            <span class="bg-blue-100 text-blue-800 text-xs px-1 rounded">普通对话</span> 或 
+                            <span class="bg-purple-100 text-purple-800 text-xs px-1 rounded">数据分析</span>。
                         </p>
                         <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                            <p class="text-xs font-bold text-gray-500 uppercase mb-2">Try asking:</p>
+                            <p class="text-xs font-bold text-gray-500 uppercase mb-2">您可以尝试：</p>
                             <ul class="text-sm text-gray-600 space-y-2">
-                                <li class="flex items-center gap-2 cursor-pointer hover:text-purple-600" onclick="setInput('Upload a file for me')">
-                                    <i class="fas fa-file-upload text-gray-400"></i> "Upload a file"
+                                <li class="flex items-center gap-2 cursor-pointer hover:text-purple-600" onclick="setInput('上传一个文件')">
+                                    <i class="fas fa-file-upload text-gray-400"></i> "上传一个文件"
                                 </li>
-                                <li class="flex items-center gap-2 cursor-pointer hover:text-purple-600" onclick="setInput('Filter lines containing gene_A')">
-                                    <i class="fas fa-filter text-gray-400"></i> "Filter lines containing 'gene_A'"
+                                <li class="flex items-center gap-2 cursor-pointer hover:text-purple-600" onclick="setInput('过滤出包含 gene_A 的行')">
+                                    <i class="fas fa-filter text-gray-400"></i> "过滤出包含 gene_A 的行"
                                 </li>
                             </ul>
                         </div>
@@ -156,7 +166,7 @@
                     </button>
                     
                     <div class="flex-1 relative">
-                        <textarea id="user-input" rows="1" placeholder="Type your instruction..." class="w-full bg-gray-50 text-gray-800 p-3 pl-4 pr-12 rounded-xl border border-gray-200 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all resize-none shadow-inner" style="min-height: 50px;" onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"></textarea>
+                        <textarea id="user-input" rows="1" placeholder="输入指令..." class="w-full bg-gray-50 text-gray-800 p-3 pl-4 pr-12 rounded-xl border border-gray-200 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all resize-none shadow-inner" style="min-height: 50px;" onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"></textarea>
                         <div class="absolute right-3 bottom-3 text-xs text-gray-400 pointer-events-none">
                             <span class="border border-gray-200 rounded px-1">↵</span>
                         </div>
@@ -175,68 +185,104 @@
 
     <script>
         // ==========================================
-        // 1. BACKEND CONFIGURATION (Admin Area)
+        // 1. KNOWLEDGE BASE (Internal RAG)
         // ==========================================
         
-        // This is the "Knowledge Base" you configure in the code.
-        // Users won't see this unless they inspect element.
         const INTERNAL_KNOWLEDGE_BASE = [
             {
                 name: "text_filter",
-                description: "Filter lines in a dataset based on a pattern. Use for searching, grep, or finding text.",
-                // THE REAL BACKEND MAPPING
+                displayName: "Text Filter (Grep)",
+                icon: "fa-filter",
+                description: "Filter lines in a dataset based on a pattern.",
                 mapping: {
-                    // TODO: REPLACE THIS WITH YOUR REAL TOOL ID
                     toolId: "Filter1", 
-                    params: {
-                        "dataset_id": "input", // Map 'dataset_id' to Galaxy 'input'
-                        "pattern": "cond"      // Map 'pattern' to Galaxy 'cond'
-                    }
+                    params: { "dataset_id": "input", "pattern": "cond" }
                 },
-                // LLM SCHEMA
                 schema: {
                     type: "object",
                     properties: {
-                        dataset_id: { type: "string", description: "The Galaxy Dataset ID to filter." },
-                        pattern: { type: "string", description: "Regex or keyword." }
+                        dataset_id: { type: "string" },
+                        pattern: { type: "string", description: "Regex keyword" }
                     },
                     required: ["dataset_id", "pattern"]
+                }
+            },
+            {
+                name: "head_tool",
+                displayName: "Select First Lines",
+                icon: "fa-align-left",
+                description: "Select first N lines from a dataset.",
+                mapping: {
+                    toolId: "Show beginning1",
+                    params: { "dataset_id": "input", "lines": "lineNum" }
+                },
+                schema: {
+                    type: "object",
+                    properties: {
+                        dataset_id: { type: "string" },
+                        lines: { type: "integer", description: "Number of lines" }
+                    },
+                    required: ["dataset_id"]
+                }
+            },
+            {
+                name: "fastqc",
+                displayName: "FastQC Report",
+                icon: "fa-chart-bar",
+                description: "Run quality control checks on raw sequence data.",
+                mapping: {
+                    toolId: "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.72",
+                    params: { "dataset_id": "input_file" }
+                },
+                schema: {
+                    type: "object",
+                    properties: { dataset_id: { type: "string" } },
+                    required: ["dataset_id"]
                 }
             }
         ];
 
         // ==========================================
-        // 2. CLIENT LOGIC
+        // 2. INITIALIZATION & ADMIN
         // ==========================================
-        const CONFIG_KEY = 'galaxy_admin_config';
+        const CONFIG_KEY = 'galaxy_admin_v2';
         let currentHistoryId = null;
         let lastUploadedDatasetId = null;
 
-        // Load Admin Config on Start
         window.addEventListener('DOMContentLoaded', () => {
+            loadConfig();
+            renderSidebarTools();
+        });
+
+        function loadConfig() {
             const saved = localStorage.getItem(CONFIG_KEY);
             if (saved) {
                 const cfg = JSON.parse(saved);
                 document.getElementById('cfg-galaxy-url').value = cfg.galaxyUrl || 'http://localhost:8080';
                 document.getElementById('cfg-api-key').value = cfg.apiKey || '';
                 document.getElementById('cfg-ollama-url').value = cfg.ollamaUrl || 'http://localhost:11434';
+                document.getElementById('cfg-text-model').value = cfg.textModel || 'gpt-oss:120b';
+                document.getElementById('cfg-data-model').value = cfg.dataModel || 'qwen3-embedding:4b';
                 
                 if(cfg.apiKey) {
                     document.getElementById('status-indicator').classList.remove('bg-gray-300');
                     document.getElementById('status-indicator').classList.add('bg-green-400');
                 }
             }
-        });
+            // Init model display
+            updateModelDisplay('text');
+        }
 
         function saveAdminConfig() {
             const cfg = {
                 galaxyUrl: document.getElementById('cfg-galaxy-url').value,
                 apiKey: document.getElementById('cfg-api-key').value,
-                ollamaUrl: document.getElementById('cfg-ollama-url').value
+                ollamaUrl: document.getElementById('cfg-ollama-url').value,
+                textModel: document.getElementById('cfg-text-model').value,
+                dataModel: document.getElementById('cfg-data-model').value
             };
             localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
             
-            // Visual feedback
             const msg = document.getElementById('save-status');
             msg.style.opacity = 1;
             document.getElementById('status-indicator').classList.remove('bg-gray-300');
@@ -244,33 +290,69 @@
             setTimeout(() => msg.style.opacity = 0, 2000);
         }
 
+        function renderSidebarTools() {
+            const container = document.getElementById('tools-list');
+            container.innerHTML = '';
+            
+            INTERNAL_KNOWLEDGE_BASE.forEach(tool => {
+                const div = document.createElement('div');
+                div.id = `tool-item-${tool.name}`;
+                div.className = 'flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 text-gray-600 text-sm transition-all duration-300';
+                div.innerHTML = `
+                    <div class="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-gray-400">
+                        <i class="fas ${tool.icon}"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-gray-700">${tool.displayName}</div>
+                        <div class="text-[10px] text-gray-400 truncate w-32">${tool.description}</div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function highlightTool(toolName) {
+            const el = document.getElementById(`tool-item-${toolName}`);
+            if (el) {
+                // remove existing class to restart animation
+                el.classList.remove('tool-active');
+                void el.offsetWidth; // trigger reflow
+                el.classList.add('tool-active');
+                
+                // Scroll to view
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
         function getConfig() {
             return {
                 galaxyUrl: document.getElementById('cfg-galaxy-url').value.replace(/\/$/, ''),
                 apiKey: document.getElementById('cfg-api-key').value,
                 ollamaUrl: document.getElementById('cfg-ollama-url').value.replace(/\/$/, ''),
-                model: document.getElementById('user-model-select').value // User selected
+                textModel: document.getElementById('cfg-text-model').value,
+                dataModel: document.getElementById('cfg-data-model').value
             };
         }
 
-        function updateModel() {
-            log(`Model switched to: ${document.getElementById('user-model-select').value}`);
+        function updateModelDisplay(type) {
+            const cfg = getConfig();
+            const badge = document.getElementById('model-badge');
+            const txt = document.getElementById('current-model-display');
+            
+            if (type === 'data') {
+                badge.className = 'px-2 py-1 rounded bg-purple-100 text-purple-700 transition-colors border border-purple-200';
+                txt.textContent = cfg.dataModel;
+            } else {
+                badge.className = 'px-2 py-1 rounded bg-blue-100 text-blue-700 transition-colors border border-blue-200';
+                txt.textContent = cfg.textModel;
+            }
         }
 
         function setInput(text) {
             document.getElementById('user-input').value = text;
         }
 
-        // --- Logging ---
-        function log(msg, type = 'info') {
-            const logs = document.getElementById('logs');
-            const entry = document.createElement('div');
-            entry.className = `mb-1 ${type === 'error' ? 'text-red-500' : (type === 'success' ? 'text-green-600' : 'text-gray-500')}`;
-            entry.textContent = `> ${msg}`;
-            logs.prepend(entry);
-        }
-
-        // --- Chat UI ---
+        // --- UI Helpers ---
         function addMessage(role, content, isHtml = false) {
             const box = document.getElementById('chat-box');
             const row = document.createElement('div');
@@ -291,10 +373,10 @@
             box.scrollTop = box.scrollHeight;
         }
 
-        // --- API Helpers ---
+        // --- Galaxy API ---
         async function galaxyFetch(endpoint, method = 'GET', body = null) {
             const cfg = getConfig();
-            if (!cfg.apiKey) { alert('Admin Error: No API Key configured.'); throw new Error('No API Key'); }
+            if (!cfg.apiKey) { alert('API Key 缺失'); throw new Error('No API Key'); }
             
             const opts = {
                 method,
@@ -304,43 +386,46 @@
 
             try {
                 const res = await fetch(`${cfg.galaxyUrl}${endpoint}`, opts);
-                if (!res.ok) {
-                    const text = await res.text();
-                    throw new Error(`Galaxy API Error (${res.status}): ${text}`);
-                }
+                if (!res.ok) throw new Error(await res.text());
                 return await res.json();
             } catch (e) {
-                log(e.message, 'error');
+                console.error(e);
                 throw e;
             }
         }
 
         async function ensureHistory() {
             if (currentHistoryId) return currentHistoryId;
-            const hists = await galaxyFetch('/api/histories?order=update_time');
-            if (hists.length > 0) {
-                currentHistoryId = hists[0].id;
-                log(`Session attached: ${hists[0].name}`, 'success');
-            } else {
-                const newHist = await galaxyFetch('/api/histories', 'POST', { name: 'Agent Session ' + new Date().toISOString() });
-                currentHistoryId = newHist.id;
-                log(`New Session created: ${newHist.id}`, 'success');
-            }
-            return currentHistoryId;
+            try {
+                const hists = await galaxyFetch('/api/histories?order=update_time');
+                if (hists.length > 0) currentHistoryId = hists[0].id;
+                else {
+                    const newHist = await galaxyFetch('/api/histories', 'POST', { name: 'Agent Session ' + new Date().toISOString() });
+                    currentHistoryId = newHist.id;
+                }
+                return currentHistoryId;
+            } catch(e) { return null; }
         }
 
-        // --- Core Functions ---
+        // ==========================================
+        // 3. CORE INTELLIGENCE
+        // ==========================================
+
         async function handleFileUpload(input) {
             const file = input.files[0];
             if (!file) return;
             
-            addMessage('user', `Uploading file: ${file.name}`);
-            addMessage('assistant', `Processing upload... <i class="fas fa-spinner fa-spin"></i>`, true);
+            addMessage('user', `📄 上传文件: ${file.name}`);
+            addMessage('assistant', `正在将文件上传至 Galaxy... <i class="fas fa-spinner fa-spin"></i>`, true);
+            
+            // Switch UI to Data Mode
+            updateModelDisplay('data');
 
             try {
                 const histId = await ensureHistory();
-                const text = await file.text();
+                if(!histId) throw new Error("无法连接 Galaxy");
 
+                const text = await file.text();
                 const payload = {
                     tool_id: 'upload1',
                     history_id: histId,
@@ -357,11 +442,10 @@
                 const datasetId = res.outputs[0].id;
                 lastUploadedDatasetId = datasetId;
                 
-                log(`Upload Success. ID: ${datasetId}`, 'success');
-                addMessage('assistant', `✅ <b>File Uploaded</b><br>Dataset ID: <code>${datasetId}</code><br>You can now ask me to analyze this file.`, true);
+                addMessage('assistant', `✅ <b>文件已就绪</b><br>Dataset ID: <code>${datasetId}</code><br>系统已切换至分析模型，您可以让我过滤或统计该文件。`, true);
 
             } catch (e) {
-                addMessage('assistant', `❌ Upload failed: ${e.message}`);
+                addMessage('assistant', `❌ 上传失败: ${e.message}`);
             }
         }
 
@@ -372,11 +456,18 @@
             
             inputEl.value = '';
             addMessage('user', text);
-            addMessage('assistant', `Thinking...`, true);
+            addMessage('assistant', `思考中...`, true);
 
             const cfg = getConfig();
             
-            // Construct System Prompt using INTERNAL_KNOWLEDGE_BASE
+            // --- Auto-Routing Logic ---
+            // If we have a file context or user mentions "dataset", use Data Model.
+            const hasDataCtx = !!lastUploadedDatasetId;
+            const modelToUse = hasDataCtx ? cfg.dataModel : cfg.textModel;
+            
+            updateModelDisplay(hasDataCtx ? 'data' : 'text');
+            
+            // Prepare Tools
             const availableTools = INTERNAL_KNOWLEDGE_BASE.map(t => ({
                 name: t.name,
                 description: t.description,
@@ -384,29 +475,31 @@
             }));
 
             const systemPrompt = `
-You are a Bioinformatics Assistant.
-Context: Last File ID: "${lastUploadedDatasetId || 'None'}".
-User: "${text}".
+你是一个生物信息学专家 Agent。
+当前运行模型: ${modelToUse}。
+上下文信息:
+- 最近上传文件 ID: "${lastUploadedDatasetId || '无'}".
+- 用户输入: "${text}".
 
-If the user request matches a tool, output JSON: {"tool": "tool_name", "parameters": {...}}.
-Otherwise, reply in text.
+逻辑判断:
+1. 如果用户请求可以用工具解决 (如过滤, 统计, 质控)，请输出标准 JSON 格式调用工具。
+2. 否则，请用中文直接回答。
 
-Tools: ${JSON.stringify(availableTools)}
+可用工具: ${JSON.stringify(availableTools)}
             `;
 
             try {
-                // Call Ollama
                 const ollamaRes = await fetch(`${cfg.ollamaUrl}/api/chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        model: cfg.model,
+                        model: modelToUse,
                         stream: false,
                         messages: [
                             { role: "system", content: systemPrompt },
                             { role: "user", content: text }
                         ],
-                        format: "json" // Force JSON mode for better tool calls
+                        format: "json" 
                     })
                 });
 
@@ -414,7 +507,7 @@ Tools: ${JSON.stringify(availableTools)}
                 const ollamaJson = await ollamaRes.json();
                 let content = ollamaJson.message.content;
 
-                // Parse Decision
+                // Parse Tool Call
                 let toolCall = null;
                 try {
                     const match = content.match(/\{[\s\S]*\}/);
@@ -423,14 +516,18 @@ Tools: ${JSON.stringify(availableTools)}
                 } catch (e) {}
 
                 if (toolCall && toolCall.tool) {
-                    // Find mapping in Internal Knowledge Base
                     const toolDef = INTERNAL_KNOWLEDGE_BASE.find(t => t.name === toolCall.tool);
                     
                     if (toolDef) {
-                        addMessage('assistant', `⚙️ <b>Executing Tool:</b> ${toolCall.tool}...`, true);
+                        // VISUAL FEEDBACK: Highlight Sidebar
+                        highlightTool(toolDef.name);
+                        
+                        addMessage('assistant', `⚙️ <b>正在调用工具:</b> ${toolDef.displayName}...`, true);
                         await runGalaxyTool(toolDef, toolCall.parameters);
                     } else {
-                        addMessage('assistant', `⚠️ Model hallucinated tool '${toolCall.tool}' which is not in knowledge base.`);
+                        // Handle hallucination or chat
+                        if (toolCall.message) addMessage('assistant', toolCall.message);
+                        else addMessage('assistant', `模型尝试调用未知工具: ${toolCall.tool}`);
                     }
                 } else {
                     if (toolCall && toolCall.message) content = toolCall.message;
@@ -443,54 +540,49 @@ Tools: ${JSON.stringify(availableTools)}
         }
 
         async function runGalaxyTool(toolDef, params) {
-            const cfg = getConfig();
             const histId = await ensureHistory();
+            if(!histId) return;
 
+            // Context Injection
             if (!params.dataset_id && lastUploadedDatasetId) {
                 params.dataset_id = lastUploadedDatasetId;
             }
 
-            // --- RAG MAPPING ENGINE ---
+            // Parameter Mapping
             const payload = {
                 tool_id: toolDef.mapping.toolId,
                 history_id: histId,
                 inputs: {}
             };
 
-            // Map abstract params to concrete Galaxy params
             for (const [key, val] of Object.entries(params)) {
                 const galaxyKey = toolDef.mapping.params[key];
                 if (galaxyKey) {
-                    if (key === 'dataset_id') {
-                        payload.inputs[galaxyKey] = { src: 'hda', id: val };
-                    } else {
-                        payload.inputs[galaxyKey] = val;
-                    }
+                    if (key === 'dataset_id') payload.inputs[galaxyKey] = { src: 'hda', id: val };
+                    else payload.inputs[galaxyKey] = val;
                 }
             }
-            
-            log(`Executing Tool: ${JSON.stringify(payload)}`);
 
             try {
                 const toolRes = await galaxyFetch('/api/tools', 'POST', payload);
                 const jobId = toolRes.jobs[0].id;
                 
-                // Polling
-                addMessage('assistant', `Waiting for Galaxy Job (${jobId})...`, true);
+                addMessage('assistant', `任务已提交 Galaxy (Job: ${jobId})<br>等待结果中...`, true);
                 
+                // Polling
                 const pollInterval = setInterval(async () => {
                     const job = await galaxyFetch(`/api/jobs/${jobId}`);
                     if (job.state === 'ok') {
                         clearInterval(pollInterval);
-                        addMessage('assistant', `✅ <b>Analysis Complete</b><br>Result Dataset: ${job.outputs[0].id}`, true);
+                        addMessage('assistant', `✅ <b>分析完成</b><br>结果 Dataset ID: ${job.outputs[0].id}`, true);
                     } else if (job.state === 'error') {
                         clearInterval(pollInterval);
-                        addMessage('assistant', `❌ Job Failed on Galaxy.`, true);
+                        addMessage('assistant', `❌ 任务执行失败。`, true);
                     }
                 }, 2000);
 
             } catch (e) {
-                addMessage('assistant', `❌ Execution Failed: ${e.message}`);
+                addMessage('assistant', `❌ 调用失败: ${e.message}`);
             }
         }
     </script>
