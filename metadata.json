@@ -1,0 +1,5 @@
+{
+  "name": "Galaxy Ollama Orchestrator",
+  "description": "A web interface connecting local Ollama LLMs with the Galaxy Project API to execute bioinformatics workflows via natural language.",
+  "requestFramePermissions": []
+}

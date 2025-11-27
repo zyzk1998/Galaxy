@@ -1,0 +1,23 @@
+{
+  "name": "galaxy-ollama-orchestrator",
+  "version": "1.0.0",
+  "description": "Web interface connecting Ollama and Galaxy Project",
+  "main": "index.tsx",
+  "scripts": {
+    "start": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "vite": "^5.2.0",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.5",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.0"
+  },
+  "author": "",
+  "license": "MIT"
+}
