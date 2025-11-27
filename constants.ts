@@ -1,9 +1,10 @@
 import { ToolDefinition } from './types';
 
-// 你的后端服务器地址
-export const DEFAULT_GALAXY_URL = 'http://192.168.32.31'; 
-export const DEFAULT_OLLAMA_URL = 'http://192.168.32.31:11434';
-export const DEFAULT_MODEL = 'gpt-oss:120b';
+// 安全配置：这里仅保留默认占位符。
+// 实际的配置将存储在用户的浏览器 LocalStorage 中，不会提交到代码仓库。
+export const DEFAULT_GALAXY_URL = 'http://localhost:8080'; 
+export const DEFAULT_OLLAMA_URL = 'http://localhost:11434';
+export const DEFAULT_MODEL = 'llama3';
 
 // 【知识库核心】
 // 请参考 docs/KNOWLEDGE_BASE_GUIDE.md 来填充此文件。
@@ -24,6 +25,7 @@ export const AVAILABLE_TOOLS: ToolDefinition[] = [
     // RAG 规则：Galaxy API 映射
     mapping: {
       // TODO: 请替换为你服务器上真实的 Grep/Filter 工具 ID
+      // 这里的 ID 只是示例，不同 Galaxy 版本可能不同
       toolId: 'Filter1', 
       params: {
         'dataset_id': { galaxyName: 'input', type: 'hda_ref' }, // 这里的 'input' 是 Galaxy grep 工具接受文件输入的参数名
@@ -69,7 +71,7 @@ export const AVAILABLE_TOOLS: ToolDefinition[] = [
 
 export const SYSTEM_PROMPT = `
 你是一个智能生物信息学助手 Agent，运行在本地服务器上。
-你的目标是帮助用户操作 Galaxy Server (192.168.32.31) 上的数据。
+你的目标是帮助用户操作 Galaxy Server 上的数据。
 
 【核心规则】
 1. **工具调用 (Tool Use)**: 

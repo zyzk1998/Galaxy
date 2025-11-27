@@ -6,25 +6,43 @@ import { GalaxyService } from './services/galaxyService';
 import { AppConfig, Message, GalaxyHistory } from './types';
 import { DEFAULT_OLLAMA_URL, DEFAULT_GALAXY_URL, DEFAULT_MODEL, SYSTEM_PROMPT } from './constants';
 
+const STORAGE_KEY = 'galaxy_agent_config';
+
 export default function App() {
-  const [config, setConfig] = useState<AppConfig>({
-    ollamaUrl: DEFAULT_OLLAMA_URL,
-    ollamaModel: DEFAULT_MODEL,
-    galaxyUrl: DEFAULT_GALAXY_URL,
-    galaxyApiKey: ''
+  // Initialize state from LocalStorage if available
+  const [config, setConfig] = useState<AppConfig>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    return {
+      ollamaUrl: DEFAULT_OLLAMA_URL,
+      ollamaModel: DEFAULT_MODEL,
+      galaxyUrl: DEFAULT_GALAXY_URL,
+      galaxyApiKey: ''
+    };
   });
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  // 新增: 专门用于显示后台任务状态的文本
   const [loadingStatus, setLoadingStatus] = useState<string>('');
   const [currentHistory, setCurrentHistory] = useState<GalaxyHistory | null>(null);
+
+  // Save config to LocalStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+  }, [config]);
 
   useEffect(() => {
     setMessages([
         { role: 'system', content: SYSTEM_PROMPT }
     ]);
+    
+    // Auto-open settings if API key is missing
+    if (!config.galaxyApiKey) {
+      setIsSettingsOpen(true);
+    }
   }, []);
 
   const getOrCreateHistory = async (galaxy: GalaxyService) => {
@@ -202,7 +220,7 @@ export default function App() {
           </div>
         </div>
         <div className="flex-1 p-4 text-sm text-gray-400">
-          <p className="mb-4">Backend: 192.168.32.31</p>
+          <p className="mb-4">Backend: {config.galaxyUrl.replace(/http[s]?:\/\//, '')}</p>
           <p>Model: {config.ollamaModel}</p>
         </div>
         <div className="p-4 border-t border-gray-800">

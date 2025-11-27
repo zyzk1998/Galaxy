@@ -34,7 +34,7 @@
                 <!-- Galaxy Config -->
                 <div class="group">
                     <label class="block text-xs text-purple-400 font-bold mb-1">Galaxy URL</label>
-                    <input id="cfg-galaxy-url" type="text" value="http://192.168.32.31" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm text-white focus:border-purple-500 transition-colors">
+                    <input id="cfg-galaxy-url" type="text" placeholder="e.g. http://192.168.1.100" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm text-white focus:border-purple-500 transition-colors">
                     <p class="text-[10px] text-gray-500 mt-1">需在 galaxy.yml 中配置 <code class="bg-gray-700 px-1">access_control_allow_origin: '*'</code></p>
                 </div>
 
@@ -49,7 +49,7 @@
                 <!-- Ollama Config -->
                 <div class="group">
                     <label class="block text-xs text-blue-400 font-bold mb-1">Ollama URL</label>
-                    <input id="cfg-ollama-url" type="text" value="http://192.168.32.31:11434" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm text-white focus:border-blue-500 transition-colors">
+                    <input id="cfg-ollama-url" type="text" placeholder="e.g. http://192.168.1.100:11434" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm text-white focus:border-blue-500 transition-colors">
                     <p class="text-[10px] text-gray-500 mt-1">需设置环境变量 <code class="bg-gray-700 px-1">OLLAMA_ORIGINS="*"</code></p>
                 </div>
 
@@ -57,7 +57,7 @@
                     <label class="block text-xs text-blue-400 font-bold mb-1">
                         Ollama Model
                     </label>
-                    <input id="cfg-model" type="text" value="gpt-oss:120b" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm text-white focus:border-blue-500 transition-colors">
+                    <input id="cfg-model" type="text" placeholder="e.g. gpt-oss:120b" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm text-white focus:border-blue-500 transition-colors">
                     <p class="text-[10px] text-gray-500 mt-1">
                         需与服务器一致。查看命令: <code class="bg-gray-700 px-1 select-all">ollama list</code>
                     </p>
@@ -74,7 +74,7 @@
                     <div class="mb-3">
                         <label class="block mb-1 text-gray-300 font-bold">Tool: Text Filter (Grep)</label>
                         <label class="block mb-1 text-gray-500 text-[10px]">真实 Galaxy Tool ID:</label>
-                        <input id="cfg-tool-id" type="text" value="Filter1" class="w-full bg-gray-800 border border-gray-600 rounded p-1 text-white text-xs focus:border-green-500">
+                        <input id="cfg-tool-id" type="text" placeholder="Filter1" class="w-full bg-gray-800 border border-gray-600 rounded p-1 text-white text-xs focus:border-green-500">
                         <p class="text-[10px] text-yellow-500 mt-1">
                             <i class="fas fa-exclamation-triangle"></i> 必填: 请在 Galaxy 网页中找到该工具，复制其完整 ID (通常形如 toolshed.g2.bx.psu.edu/...)
                         </p>
@@ -85,6 +85,13 @@
                         <p class="text-[10px] text-gray-400">dataset_id -> "input" (hda_ref)</p>
                         <p class="text-[10px] text-gray-400">pattern -> "cond"</p>
                     </div>
+                </div>
+                
+                <div class="pt-2">
+                    <button onclick="saveConfig()" class="w-full bg-purple-700 hover:bg-purple-600 text-white text-xs py-2 rounded transition-colors">
+                        <i class="fas fa-save mr-1"></i> 保存配置 (本地缓存)
+                    </button>
+                    <p id="save-msg" class="text-center text-[10px] text-green-500 mt-1 opacity-0 transition-opacity">已保存</p>
                 </div>
             </div>
 
@@ -133,6 +140,40 @@
     </div>
 
     <script>
+        // --- 0. 配置持久化逻辑 ---
+        const CONFIG_KEY = 'galaxy_demo_config';
+        
+        function loadConfig() {
+            const saved = localStorage.getItem(CONFIG_KEY);
+            if (saved) {
+                const cfg = JSON.parse(saved);
+                document.getElementById('cfg-galaxy-url').value = cfg.galaxyUrl || '';
+                document.getElementById('cfg-api-key').value = cfg.apiKey || '';
+                document.getElementById('cfg-ollama-url').value = cfg.ollamaUrl || '';
+                document.getElementById('cfg-model').value = cfg.model || '';
+                document.getElementById('cfg-tool-id').value = cfg.realToolId || 'Filter1';
+            }
+        }
+
+        function saveConfig() {
+            const cfg = {
+                galaxyUrl: document.getElementById('cfg-galaxy-url').value,
+                apiKey: document.getElementById('cfg-api-key').value,
+                ollamaUrl: document.getElementById('cfg-ollama-url').value,
+                model: document.getElementById('cfg-model').value,
+                realToolId: document.getElementById('cfg-tool-id').value
+            };
+            localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+            
+            const msg = document.getElementById('save-msg');
+            msg.style.opacity = 1;
+            setTimeout(() => msg.style.opacity = 0, 2000);
+        }
+
+        // 页面加载时自动读取配置
+        window.addEventListener('DOMContentLoaded', loadConfig);
+
+
         // --- 核心状态 ---
         let currentHistoryId = null;
         let lastUploadedDatasetId = null;
