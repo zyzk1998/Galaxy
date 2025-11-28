@@ -17,7 +17,7 @@
 
 ### 第一步：环境准备 (服务端)
 
-在你的服务器 (假设 IP 为 `192.168.32.31`) 上，必须确保两个服务允许**跨域访问 (CORS)**，否则浏览器网页无法连接它们。
+在你的服务器 (假设 IP 为 `192.168.8.111`) 上，必须确保两个服务允许**跨域访问 (CORS)**，否则浏览器网页无法连接它们。
 
 1.  **配置 Galaxy 允许跨域**:
     - 编辑 Galaxy 配置文件 (`galaxy.yml` 或 `galaxy.ini`)。
@@ -58,25 +58,28 @@ LLM 不知道你服务器上安装的具体工具 ID，你需要教它。
 
 > **提示**: 系统默认提供了一份 `text_filter` (Grep) 的模板，请务必将其中的 ID 替换为你服务器上的真实 ID。
 
-### 第四步：运行项目
+### 第四步：运行项目 (二选一)
 
-你有两种方式运行：
-
-**方式 A: 使用 VSCode (最简单)**
-1.  安装 "Live Server" 插件。
-2.  在 VSCode 中打开 `index.html`。
+**方式 A: 如果你有 VSCode 界面**
+1.  在 VSCode 插件市场搜索并安装 "Live Server" (作者 Ritwick Dey)。
+2.  在 VSCode 中打开 `demo.html`。
 3.  右键选择 "Open with Live Server"。
 
-**方式 B: 使用 Python**
+**方式 B: 如果你在 Linux 终端/服务器 (推荐)**
+Python 3 自带了 HTTP 服务器，**无需安装任何 pip 包**。
+
 1.  在项目根目录下打开终端。
-2.  运行: `python3 -m http.server 3000`
-3.  浏览器访问: `http://localhost:3000`
+2.  直接运行以下命令 (推荐使用 8888 端口，避免与 Nginx/开发服务冲突)：
+    ```bash
+    python3 -m http.server 8888
+    ```
+3.  在浏览器访问: `http://192.168.8.111:8888/demo.html`
 
 ### 第五步：使用流程
 
-1.  **设置**: 首次打开网页，点击左下角的 "Settings"。
-    - 输入 Ollama URL (例如 `http://192.168.32.31:11434`)。
-    - 输入 Galaxy URL (例如 `http://192.168.32.31`)。
+1.  **设置**: 首次打开网页，点击左下角的 "System Admin" (或者 Demo 版的设置)。
+    - 输入 Ollama URL (例如 `http://192.168.8.111:11434`)。
+    - 输入 Galaxy URL (例如 `http://192.168.8.111`)。
     - **输入你的 Galaxy API Key** (在 Galaxy User Preferences 中获取)。
     - 点击 Save。浏览器会记住这些信息。
 
@@ -95,10 +98,12 @@ LLM 不知道你服务器上安装的具体工具 ID，你需要教它。
 - `services/galaxyService.ts`: **执行手**。负责上传文件、发送 API 请求、轮询任务状态。
 - `services/ollamaService.ts`: **大脑接口**。负责与本地 LLM 通信。
 - `App.tsx`: **中控室**。协调上传、决策、执行的完整流程。
-- `simple_demo.html`: **单文件演示版**。包含所有功能的独立 HTML 文件，适合快速演示或分享。
+- `demo.html`: **单文件演示版**。包含所有功能的独立 HTML 文件，适合快速演示或分享。
 
 ## ⚠️ 常见问题
 
+- **报错 "Address already in use"**:
+  - 说明端口被占用。尝试换个端口号运行：`python3 -m http.server 8888` 或 `9090`。
 - **报错 "Failed to fetch"**:
   - 99% 是因为 CORS 没配置好。请检查浏览器控制台 (F12 -> Console)，如果看到 "Access-Control-Allow-Origin" 错误，请重做“第一步”。
 - **AI 说调用了工具，但 Galaxy 没反应**:

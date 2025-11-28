@@ -81,7 +81,7 @@
                         <!-- Galaxy Config -->
                         <div>
                             <label class="block text-[10px] font-bold text-gray-400 mb-1">Galaxy URL</label>
-                            <input id="cfg-galaxy-url" type="text" value="http://localhost:8080" class="w-full bg-gray-50 border border-gray-200 rounded p-2 text-xs text-gray-700 focus:border-purple-500 outline-none">
+                            <input id="cfg-galaxy-url" type="text" class="w-full bg-gray-50 border border-gray-200 rounded p-2 text-xs text-gray-700 focus:border-purple-500 outline-none">
                         </div>
 
                         <div>
@@ -94,7 +94,8 @@
                         <!-- Ollama Config -->
                         <div>
                             <label class="block text-[10px] font-bold text-gray-400 mb-1">Ollama URL</label>
-                            <input id="cfg-ollama-url" type="text" value="http://localhost:11434" class="w-full bg-gray-50 border border-gray-200 rounded p-2 text-xs text-gray-700 focus:border-purple-500 outline-none">
+                            <input id="cfg-ollama-url" type="text" class="w-full bg-gray-50 border border-gray-200 rounded p-2 text-xs text-gray-700 focus:border-purple-500 outline-none">
+                            <p class="text-[9px] text-gray-400 mt-1">需在服务器设置: <code class="bg-gray-100">export OLLAMA_ORIGINS="*"</code></p>
                         </div>
 
                         <!-- Model Auto-Routing Config -->
@@ -256,11 +257,18 @@
 
         function loadConfig() {
             const saved = localStorage.getItem(CONFIG_KEY);
+            
+            // 智能 IP 探测：如果是在 192.168.8.111 访问，默认后端也是这个 IP
+            const currentHost = window.location.hostname;
+            const defaultBase = (currentHost === 'localhost' || currentHost === '127.0.0.1') 
+                                ? '192.168.8.111' 
+                                : currentHost;
+
             if (saved) {
                 const cfg = JSON.parse(saved);
-                document.getElementById('cfg-galaxy-url').value = cfg.galaxyUrl || 'http://localhost:8080';
+                document.getElementById('cfg-galaxy-url').value = cfg.galaxyUrl || `http://${defaultBase}:8080`;
                 document.getElementById('cfg-api-key').value = cfg.apiKey || '';
-                document.getElementById('cfg-ollama-url').value = cfg.ollamaUrl || 'http://localhost:11434';
+                document.getElementById('cfg-ollama-url').value = cfg.ollamaUrl || `http://${defaultBase}:11434`;
                 document.getElementById('cfg-text-model').value = cfg.textModel || 'gpt-oss:120b';
                 document.getElementById('cfg-data-model').value = cfg.dataModel || 'qwen3-embedding:4b';
                 
@@ -268,7 +276,12 @@
                     document.getElementById('status-indicator').classList.remove('bg-gray-300');
                     document.getElementById('status-indicator').classList.add('bg-green-400');
                 }
+            } else {
+                // 如果没有存档，使用智能探测的 IP 作为默认值
+                document.getElementById('cfg-galaxy-url').value = `http://${defaultBase}:8080`;
+                document.getElementById('cfg-ollama-url').value = `http://${defaultBase}:11434`;
             }
+
             // Init model display
             updateModelDisplay('text');
         }
